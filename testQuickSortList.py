@@ -3,6 +3,8 @@ import pytest
 import quicksort
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# based on random list generation till range 250
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -21,6 +23,8 @@ def test_random_list_range250(quicksortfunction):
     print(str(quicksortfunction) + "Passed")
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# based on random list generation till range 100
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -39,6 +43,8 @@ def test_random_list_range100(quicksortfunction):
     print(str(quicksortfunction) + "Passed")
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# random list generation without duplicates till range 250
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -52,6 +58,8 @@ def test_without_duplicates_list_250(quicksortfunction):
         assert sorted_list[i] == result_list_sort1[i]
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# random list generation without duplicates till range 5
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -65,6 +73,8 @@ def test_without_duplicates_list_5(quicksortfunction):
         assert sorted_list[i] == result_list_sort2[i]
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# random list generation without duplicates till range 10
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -78,6 +88,8 @@ def test_without_duplicates_list_10(quicksortfunction):
         assert sorted_list[i] == result_list_sort3[i]
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# random list generation without duplicates till range 25
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -91,6 +103,8 @@ def test_without_duplicates_list_25(quicksortfunction):
         assert sorted_list[i] == result_list_sort2[i]
 
 
+# parameterized method for Quicksort1 to Quicksort4
+# random list generation without duplicates till range 50
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -103,7 +117,8 @@ def test_without_duplicates_list_50(quicksortfunction):
     for i in range(0, 50):
         assert sorted_list[i] == result_list_sort3[i]
 
-
+# parameterized method for Quicksort1 to Quicksort4
+# partially generated (half sorted half unsorted) random list for range 250
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -125,7 +140,8 @@ def test_partially_sorted_list(quicksortfunction):
     for i in range(0, 250):
         assert randomlist_sorted[i] == result[i]
 
-
+# parameterized method for Quicksort1 to Quicksort4
+# using reverse sorting for range 250
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -139,7 +155,8 @@ def test_reverse_sort_250(quicksortfunction):
     for i in range(0, 250):
         assert randomlist_reversely_sorted[i] == result[i]
 
-
+# parameterized method for Quicksort1 to Quicksort4
+# using reverse sorting for range 100
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
@@ -153,7 +170,8 @@ def test_reverse_sort_100(quicksortfunction):
     for i in range(0, 100):
         assert randomlist_reversely_sorted[i] == result[i]
 
-
+# parameterized method for Quicksort1 to Quicksort4
+# using negative values
 @pytest.mark.parametrize(
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
