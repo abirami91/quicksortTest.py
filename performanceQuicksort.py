@@ -8,10 +8,10 @@ import quicksort
 def evaluatePerformance():
     list_no = [3, 8, 1, 9, 12, 2, 11, 7, 5, 4]
     print('Not sorted: %s' % list_no)
-    print('Sorted qsort1: %s' % quicksort.qsort1(list_no, 0, len(list_no) - 1))
-    print('Sorted qsort2: %s' % quicksort.qsort2(list_no, 0, len(list_no) - 1))
-    print('Sorted qsort3: %s' % quicksort.qsort3(list_no, 0, len(list_no) - 1))
-    print('Sorted qsort4: %s' % quicksort.qsort4(list_no, 0, len(list_no) - 1))
+    print('Sorted quicksort1: %s' % quicksort.qsort1(list_no, 0, len(list_no) - 1))
+    print('Sorted quicksort2: %s' % quicksort.qsort2(list_no, 0, len(list_no) - 1))
+    print('Sorted quicksort3: %s' % quicksort.qsort3(list_no, 0, len(list_no) - 1))
+    print('Sorted quicksort4: %s' % quicksort.qsort4(list_no, 0, len(list_no) - 1))
 
     # Comparison between quick sort (both with pivot as the first element and random pivot) and the built-in Python sort
     random_list = [random.random() for _ in range(10000)]
