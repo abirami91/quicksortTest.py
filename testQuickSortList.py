@@ -49,9 +49,9 @@ def test_random_list_range100(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_without_duplicates_list_250(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(250), 250)
-    sorted_list = sorted(randomList_without_duplicates)
-    result_list_sort1 = quicksortfunction(randomList_without_duplicates)
+    randomlist_without_duplicates = random.sample(range(250), 250)
+    sorted_list = sorted(randomlist_without_duplicates)
+    result_list_sort1 = quicksortfunction(randomlist_without_duplicates)
     if result_list_sort1 is None:
         assert False
     for i in range(0, 250):
@@ -64,9 +64,9 @@ def test_without_duplicates_list_250(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_without_duplicates_list_5(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(5), 5)
-    sorted_list = sorted(randomList_without_duplicates)
-    result_list_sort2 = quicksortfunction(randomList_without_duplicates)
+    randomlist_without_duplicates = random.sample(range(5), 5)
+    sorted_list = sorted(randomlist_without_duplicates)
+    result_list_sort2 = quicksortfunction(randomlist_without_duplicates)
     if result_list_sort2 is None:
         assert False
     for i in range(0, 5):
@@ -79,9 +79,9 @@ def test_without_duplicates_list_5(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_without_duplicates_list_10(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(10), 10)
-    sorted_list = sorted(randomList_without_duplicates)
-    result_list_sort3 = quicksortfunction(randomList_without_duplicates)
+    randomlist_without_duplicates = random.sample(range(10), 10)
+    sorted_list = sorted(randomlist_without_duplicates)
+    result_list_sort3 = quicksortfunction(randomlist_without_duplicates)
     if result_list_sort3 is None:
         assert False
     for i in range(0, 10):
@@ -94,9 +94,9 @@ def test_without_duplicates_list_10(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_without_duplicates_list_25(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(25), 25)
-    sorted_list = sorted(randomList_without_duplicates)
-    result_list_sort2 = quicksortfunction(randomList_without_duplicates)
+    randomlist_without_duplicates = random.sample(range(25), 25)
+    sorted_list = sorted(randomlist_without_duplicates)
+    result_list_sort2 = quicksortfunction(randomlist_without_duplicates)
     if result_list_sort2 is None:
         assert False
     for i in range(0, 25):
@@ -109,9 +109,9 @@ def test_without_duplicates_list_25(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_without_duplicates_list_50(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(50), 50)
-    sorted_list = sorted(randomList_without_duplicates)
-    result_list_sort3 = quicksortfunction(randomList_without_duplicates)
+    randomlist_without_duplicates = random.sample(range(50), 50)
+    sorted_list = sorted(randomlist_without_duplicates)
+    result_list_sort3 = quicksortfunction(randomlist_without_duplicates)
     if result_list_sort3 is None:
         assert False
     for i in range(0, 50):
@@ -146,8 +146,8 @@ def test_partially_sorted_list(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_reverse_sort_250(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(250), 250)
-    randomlist_reversely_sorted = sorted(randomList_without_duplicates, reverse=True)
+    randomlist_without_duplicates = random.sample(range(250), 250)
+    randomlist_reversely_sorted = sorted(randomlist_without_duplicates, reverse=True)
     print(randomlist_reversely_sorted)
     result = quicksortfunction(randomlist_reversely_sorted)
     if result is None:
@@ -161,8 +161,8 @@ def test_reverse_sort_250(quicksortfunction):
     'quicksortfunction',
     (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))
 def test_reverse_sort_100(quicksortfunction):
-    randomList_without_duplicates = random.sample(range(100), 100)
-    randomlist_reversely_sorted = sorted(randomList_without_duplicates, reverse=True)
+    randomlist_without_duplicates = random.sample(range(100), 100)
+    randomlist_reversely_sorted = sorted(randomlist_without_duplicates, reverse=True)
     print(randomlist_reversely_sorted)
     result = quicksortfunction(randomlist_reversely_sorted)
     if result is None:
