@@ -8,6 +8,7 @@ import random
 if __name__ == '__main__':
     print("Test for different quicksort algorithms")
 
+# The below method is used for estimating the time consumed by the quicksort algorithms
 list_no = [3, 8, 1, 9, 12, 2, 11, 7, 5, 4]
 print('Not sorted: %s' % list_no)
 print('Sorted qsort1: %s' % quicksort.qsort1(list_no, 0, len(list_no) - 1))
@@ -32,6 +33,3 @@ print('1quicksort/built-in: %f' % (t1qs1 / t3))
 print('2quicksort/built-in: %f' % (t1qs2 / t3))
 print('3quicksort/built-in: %f' % (t1qs3 / t3))
 print('4quicksort/built-in: %f' % (t1qs4 / t3))
-
-
-
