@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++)
+        filterItems[i].hidden = false;
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>report.html</h1>
+    <p>Report generated on 24-Jun-2021 at 12:00:47 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "0.13.1", "py": "1.10.0", "pytest": "6.2.4"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>macOS-10.16-x86_64-i386-64bit</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"html": "3.1.1", "metadata": "1.11.0"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.9.5</td></tr></table>
+    <h2>Summary</h2>
+    <p>44 tests ran in 0.19 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">18 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">26 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range250[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_random_list_range250(quicksortfunction):<br/>        random_list = []<br/>        # with duplicates<br/>        for i in range(0, 250):<br/>            num_list = random.randint(1, 250)<br/>            random_list.append(num_list)<br/>        sorted_list = sorted(random_list)<br/>        result_list = quicksortfunction(random_list)<br/>        if result_list is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:18: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range250[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_random_list_range250(quicksortfunction):<br/>        random_list = []<br/>        # with duplicates<br/>        for i in range(0, 250):<br/>            num_list = random.randint(1, 250)<br/>            random_list.append(num_list)<br/>        sorted_list = sorted(random_list)<br/>        result_list = quicksortfunction(random_list)<br/>        if result_list is None:<br/>            assert False<br/>        for j in range(0, 250):<br/>&gt;           assert sorted_list[j] == result_list[j]<br/><span class="error">E           assert 3 == 6</span><br/><br/>testQuickSortList.py:20: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range250[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_random_list_range250(quicksortfunction):<br/>        random_list = []<br/>        # with duplicates<br/>        for i in range(0, 250):<br/>            num_list = random.randint(1, 250)<br/>            random_list.append(num_list)<br/>        sorted_list = sorted(random_list)<br/>        result_list = quicksortfunction(random_list)<br/>        if result_list is None:<br/>            assert False<br/>        for j in range(0, 250):<br/>&gt;           assert sorted_list[j] == result_list[j]<br/><span class="error">E           assert 2 == 5</span><br/><br/>testQuickSortList.py:20: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range100[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_random_list_range100(quicksortfunction):<br/>        random_list = []<br/>        # with duplicates<br/>        for i in range(0, 100):<br/>            num_list = random.randint(1, 100)<br/>            random_list.append(num_list)<br/>        sorted_list = sorted(random_list)<br/>        result_list = quicksortfunction(random_list)<br/>        if result_list is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:36: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range100[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_random_list_range100(quicksortfunction):<br/>        random_list = []<br/>        # with duplicates<br/>        for i in range(0, 100):<br/>            num_list = random.randint(1, 100)<br/>            random_list.append(num_list)<br/>        sorted_list = sorted(random_list)<br/>        result_list = quicksortfunction(random_list)<br/>        if result_list is None:<br/>            assert False<br/>        for j in range(0, 100):<br/>&gt;           assert sorted_list[j] == result_list[j]<br/><span class="error">E           assert 1 == 2</span><br/><br/>testQuickSortList.py:38: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range100[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_random_list_range100(quicksortfunction):<br/>        random_list = []<br/>        # with duplicates<br/>        for i in range(0, 100):<br/>            num_list = random.randint(1, 100)<br/>            random_list.append(num_list)<br/>        sorted_list = sorted(random_list)<br/>        result_list = quicksortfunction(random_list)<br/>        if result_list is None:<br/>            assert False<br/>        for j in range(0, 100):<br/>&gt;           assert sorted_list[j] == result_list[j]<br/><span class="error">E           assert 3 == 4</span><br/><br/>testQuickSortList.py:38: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_250[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_250(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(250), 250)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort1 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort1 is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:50: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_250[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_250(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(250), 250)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort1 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort1 is None:<br/>            assert False<br/>        for i in range(0, 250):<br/>&gt;           assert sorted_list[i] == result_list_sort1[i]<br/><span class="error">E           assert 0 == 1</span><br/><br/>testQuickSortList.py:52: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_250[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_250(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(250), 250)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort1 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort1 is None:<br/>            assert False<br/>        for i in range(0, 250):<br/>&gt;           assert sorted_list[i] == result_list_sort1[i]<br/><span class="error">E           assert 0 == 6</span><br/><br/>testQuickSortList.py:52: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_5[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_5(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(5), 5)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort2 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort2 is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:63: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_5[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_5(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(5), 5)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort2 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort2 is None:<br/>            assert False<br/>        for i in range(0, 5):<br/>&gt;           assert sorted_list[i] == result_list_sort2[i]<br/><span class="error">E           assert 1 == 2</span><br/><br/>testQuickSortList.py:65: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_10[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_10(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(10), 10)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort3 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort3 is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:76: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_10[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_10(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(10), 10)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort3 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort3 is None:<br/>            assert False<br/>        for i in range(0, 10):<br/>&gt;           assert sorted_list[i] == result_list_sort3[i]<br/><span class="error">E           assert 2 == 3</span><br/><br/>testQuickSortList.py:78: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_10[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_10(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(10), 10)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort3 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort3 is None:<br/>            assert False<br/>        for i in range(0, 10):<br/>&gt;           assert sorted_list[i] == result_list_sort3[i]<br/><span class="error">E           assert 2 == 3</span><br/><br/>testQuickSortList.py:78: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_25[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_25(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(25), 25)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort2 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort2 is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:89: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_25[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_25(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(25), 25)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort2 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort2 is None:<br/>            assert False<br/>        for i in range(0, 25):<br/>&gt;           assert sorted_list[i] == result_list_sort2[i]<br/><span class="error">E           assert 3 == 6</span><br/><br/>testQuickSortList.py:91: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_25[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_25(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(25), 25)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort2 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort2 is None:<br/>            assert False<br/>        for i in range(0, 25):<br/>&gt;           assert sorted_list[i] == result_list_sort2[i]<br/><span class="error">E           assert 3 == 6</span><br/><br/>testQuickSortList.py:91: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_50[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_50(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(50), 50)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort3 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort3 is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:102: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_50[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_50(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(50), 50)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort3 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort3 is None:<br/>            assert False<br/>        for i in range(0, 50):<br/>&gt;           assert sorted_list[i] == result_list_sort3[i]<br/><span class="error">E           assert 2 == 5</span><br/><br/>testQuickSortList.py:104: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_50[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_without_duplicates_list_50(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(50), 50)<br/>        sorted_list = sorted(randomList_without_duplicates)<br/>        result_list_sort3 = quicksortfunction(randomList_without_duplicates)<br/>        if result_list_sort3 is None:<br/>            assert False<br/>        for i in range(0, 50):<br/>&gt;           assert sorted_list[i] == result_list_sort3[i]<br/><span class="error">E           assert 0 == 2</span><br/><br/>testQuickSortList.py:104: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_partially_sorted_list[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_partially_sorted_list(quicksortfunction):<br/>        randomlist = random.sample(range(250), 250)<br/>        randomlist_sorted = sorted(randomlist)<br/>        randomlist_temp_sorted = sorted(randomlist)<br/>        for i in range(0, 25):<br/>            random_index_1 = random.randint(0, 125)<br/>            random_index_2 = random.randint(126, 249)<br/>            randomlist_temp_sorted[random_index_1], randomlist_temp_sorted[random_index_2] = randomlist_temp_sorted[<br/>                                                                                                 random_index_2], \<br/>                                                                                             randomlist_temp_sorted[<br/>                                                                                                 random_index_1]<br/>        randomlist_partially_sorted = randomlist_temp_sorted<br/>        result = quicksortfunction(randomlist_partially_sorted)<br/>        if result is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:124: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_partially_sorted_list[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort2 at 0x7f8cb8abe0d0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_partially_sorted_list(quicksortfunction):<br/>        randomlist = random.sample(range(250), 250)<br/>        randomlist_sorted = sorted(randomlist)<br/>        randomlist_temp_sorted = sorted(randomlist)<br/>        for i in range(0, 25):<br/>            random_index_1 = random.randint(0, 125)<br/>            random_index_2 = random.randint(126, 249)<br/>            randomlist_temp_sorted[random_index_1], randomlist_temp_sorted[random_index_2] = randomlist_temp_sorted[<br/>                                                                                                 random_index_2], \<br/>                                                                                             randomlist_temp_sorted[<br/>                                                                                                 random_index_1]<br/>        randomlist_partially_sorted = randomlist_temp_sorted<br/>        result = quicksortfunction(randomlist_partially_sorted)<br/>        if result is None:<br/>            assert False<br/>        for i in range(0, 250):<br/>&gt;           assert randomlist_sorted[i] == result[i]<br/><span class="error">E           assert 2 == 3</span><br/><br/>testQuickSortList.py:126: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_partially_sorted_list[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort3 at 0x7f8cb8abe1f0&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_partially_sorted_list(quicksortfunction):<br/>        randomlist = random.sample(range(250), 250)<br/>        randomlist_sorted = sorted(randomlist)<br/>        randomlist_temp_sorted = sorted(randomlist)<br/>        for i in range(0, 25):<br/>            random_index_1 = random.randint(0, 125)<br/>            random_index_2 = random.randint(126, 249)<br/>            randomlist_temp_sorted[random_index_1], randomlist_temp_sorted[random_index_2] = randomlist_temp_sorted[<br/>                                                                                                 random_index_2], \<br/>                                                                                             randomlist_temp_sorted[<br/>                                                                                                 random_index_1]<br/>        randomlist_partially_sorted = randomlist_temp_sorted<br/>        result = quicksortfunction(randomlist_partially_sorted)<br/>        if result is None:<br/>            assert False<br/>        for i in range(0, 250):<br/>&gt;           assert randomlist_sorted[i] == result[i]<br/><span class="error">E           assert 2 == 3</span><br/><br/>testQuickSortList.py:126: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_250[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_reverse_sort_250(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(250), 250)<br/>        randomlist_reversely_sorted = sorted(randomList_without_duplicates, reverse=True)<br/>        print(randomlist_reversely_sorted)<br/>        result = quicksortfunction(randomlist_reversely_sorted)<br/>        if result is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:138: AssertionError<br/> ------------------------------Captured stdout call------------------------------ <br/>[249, 248, 247, 246, 245, 244, 243, 242, 241, 240, 239, 238, 237, 236, 235, 234, 233, 232, 231, 230, 229, 228, 227, 226, 225, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208, 207, 206, 205, 204, 203, 202, 201, 200, 199, 198, 197, 196, 195, 194, 193, 192, 191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, 175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162, 161, 160, 159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148, 147, 146, 145, 144, 143, 142, 141, 140, 139, 138, 137, 136, 135, 134, 133, 132, 131, 130, 129, 128, 127, 126, 125, 124, 123, 122, 121, 120, 119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_100[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_reverse_sort_100(quicksortfunction):<br/>        randomList_without_duplicates = random.sample(range(100), 100)<br/>        randomlist_reversely_sorted = sorted(randomList_without_duplicates, reverse=True)<br/>        print(randomlist_reversely_sorted)<br/>        result = quicksortfunction(randomlist_reversely_sorted)<br/>        if result is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:152: AssertionError<br/> ------------------------------Captured stdout call------------------------------ <br/>[99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">testQuickSortList.py::test_negative_list_already_sorted[qsort1]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">quicksortfunction = &lt;function qsort1 at 0x7f8cb8acef70&gt;<br/><br/>    @pytest.mark.parametrize(<br/>        &#x27;quicksortfunction&#x27;,<br/>        (quicksort.qsort1, quicksort.qsort2, quicksort.qsort3, quicksort.qsort4))<br/>    def test_negative_list_already_sorted(quicksortfunction):<br/>        list = [1, 2, 3, -7]<br/>        neglist = [-x for x in list]<br/>        print(neglist)<br/>        result = quicksortfunction(neglist)<br/>        if result is None:<br/>&gt;           assert False<br/><span class="error">E           assert False</span><br/><br/>testQuickSortList.py:166: AssertionError<br/> ------------------------------Captured stdout call------------------------------ <br/>[-1, -2, -3, 7]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range250[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>&lt;function qsort4 at 0x7f8cb8abe310&gt;Passed
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_random_list_range100[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>&lt;function qsort4 at 0x7f8cb8abe310&gt;Passed
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_250[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_5[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_5[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_10[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_25[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_without_duplicates_list_50[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_partially_sorted_list[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_250[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[249, 248, 247, 246, 245, 244, 243, 242, 241, 240, 239, 238, 237, 236, 235, 234, 233, 232, 231, 230, 229, 228, 227, 226, 225, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208, 207, 206, 205, 204, 203, 202, 201, 200, 199, 198, 197, 196, 195, 194, 193, 192, 191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, 175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162, 161, 160, 159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148, 147, 146, 145, 144, 143, 142, 141, 140, 139, 138, 137, 136, 135, 134, 133, 132, 131, 130, 129, 128, 127, 126, 125, 124, 123, 122, 121, 120, 119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_250[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[249, 248, 247, 246, 245, 244, 243, 242, 241, 240, 239, 238, 237, 236, 235, 234, 233, 232, 231, 230, 229, 228, 227, 226, 225, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208, 207, 206, 205, 204, 203, 202, 201, 200, 199, 198, 197, 196, 195, 194, 193, 192, 191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, 175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162, 161, 160, 159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148, 147, 146, 145, 144, 143, 142, 141, 140, 139, 138, 137, 136, 135, 134, 133, 132, 131, 130, 129, 128, 127, 126, 125, 124, 123, 122, 121, 120, 119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_250[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[249, 248, 247, 246, 245, 244, 243, 242, 241, 240, 239, 238, 237, 236, 235, 234, 233, 232, 231, 230, 229, 228, 227, 226, 225, 224, 223, 222, 221, 220, 219, 218, 217, 216, 215, 214, 213, 212, 211, 210, 209, 208, 207, 206, 205, 204, 203, 202, 201, 200, 199, 198, 197, 196, 195, 194, 193, 192, 191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, 175, 174, 173, 172, 171, 170, 169, 168, 167, 166, 165, 164, 163, 162, 161, 160, 159, 158, 157, 156, 155, 154, 153, 152, 151, 150, 149, 148, 147, 146, 145, 144, 143, 142, 141, 140, 139, 138, 137, 136, 135, 134, 133, 132, 131, 130, 129, 128, 127, 126, 125, 124, 123, 122, 121, 120, 119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_100[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_100[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_reverse_sort_100[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_negative_list_already_sorted[qsort2]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[-1, -2, -3, 7]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_negative_list_already_sorted[qsort3]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[-1, -2, -3, 7]
+<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">testQuickSortList.py::test_negative_list_already_sorted[qsort4]</td>
+          <td class="col-duration">0.00</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> ------------------------------Captured stdout call------------------------------ <br/>[-1, -2, -3, 7]
+<br/></div></td></tr></tbody></table></body></html>
